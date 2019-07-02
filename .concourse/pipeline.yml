@@ -75,6 +75,7 @@ jobs:
           echo "Copying to output"
           cp -R distribution/server-dist/target/keycloak-*-SNAPSHOT/ ../seronet-keycloak-out
           cp .concourse/manifest.yml ../seronet-keycloak-out/
+          cp .concourse/standalone-ha.xml ../seronet-keycloak-out/standalone/configuration/
           cd ../seronet-keycloak-out
           ls
   - put: keycloak-deployment
