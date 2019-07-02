@@ -420,7 +420,7 @@
                     <transport type="UDP" socket-binding="jgroups-udp"/>
                     <protocol type="dns.DNS_PING">
                         <property name="dns_query">
-                            sso.apps.internal
+                            sso2.apps.internal
                         </property>
                         <property name="dns_record_type">
                             A
