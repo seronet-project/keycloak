@@ -15,7 +15,7 @@ resources:
     depth: 5
     disable_ci_skip: false
     private_key: ((github-private-key))
-    git_crypt_key: ((git-crypt-key))
+#    git_crypt_key: ((git-crypt-key))
 - name: keycloak-deployment
   type: cf
   icon: cloud-upload
