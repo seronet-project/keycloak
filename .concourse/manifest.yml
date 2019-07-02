@@ -1,0 +1,14 @@
+---
+applications:
+- name: sso2
+  memory: 2G
+  disk_quota: 2G
+  timeout: 180
+  buildpacks:
+#  - https://github.com/kirmerzlikin/keycloak-buildpack
+#  - java_buildpack
+  - https://github.com/seronet-project/keycloak-buildpack.git
+  routes:
+  - route: "sso2.sero.network"
+  env:
+    JBP_CONFIG_OPEN_JDK_JRE: '{ jre: { version: 1.8.0_+ } }'

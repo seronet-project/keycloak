@@ -1,0 +1,89 @@
+resource_types:
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
+    tag: v1.4.2
+
+resources:
+- name: seronet-keycloak
+  type: git
+  icon: github-face
+  source:
+    uri: git@github.com:seronet-project/keycloak.git
+    branch: master
+    depth: 5
+    disable_ci_skip: false
+    private_key: ((github-private-key))
+    git_crypt_key: ((git-crypt-key))
+- name: keycloak-deployment
+  type: cf
+  icon: cloud-upload
+  source:
+    api: ((cf.api))
+    username: ((cf.username))
+    password: ((cf.password))
+    organization: ((cf.org))
+    space: ((cf.space))
+    skip_cert_check: false
+- name: notify
+  type: slack-notification
+  icon: chat-alert
+  source:
+    url: ((slack-webhook))
+
+jobs:
+- name: deploy-keycloak
+  public: false
+  serial: true
+  plan:
+  - get: seronet-keycloak
+    trigger: true
+  - task: build-keycloak
+    config:
+      platform: linux
+      inputs:
+      - name: seronet-keycloak
+      outputs:
+      - name: seronet-keycloak-out
+      caches:
+      - path: maven/
+      - path: gradle/
+      image_resource:
+        type: docker-image
+        source: 
+          repository: maven
+          tag: 3-jdk-8
+      run:
+        path: bash
+        args:
+        - -exc
+        - |
+          export ROOT_FOLDER=$( pwd )
+          M2_HOME="${HOME}/.m2"
+          M2_CACHE="${ROOT_FOLDER}/maven"
+          GRADLE_HOME="${HOME}/.gradle"
+          GRADLE_CACHE="${ROOT_FOLDER}/gradle"
+          echo "Generating symbolic links for caches"
+          [[ -d "${M2_CACHE}" && ! -d "${M2_HOME}" ]] && ln -s "${M2_CACHE}" "${M2_HOME}"
+          [[ -d "${GRADLE_CACHE}" && ! -d "${GRADLE_HOME}" ]] && ln -s "${GRADLE_CACHE}" "${GRADLE_HOME}"
+          
+          echo "Starting build"
+          cd seronet-keycloak
+          mvn -Pdistribution -pl distribution/server-dist -am -Dmaven.test.skip clean install
+          
+          echo "Copying to output"
+          cp -R distribution/server-dist/target/keycloak-*-SNAPSHOT/ ../seronet-keycloak-out
+          cp .concourse/manifest.yml ../seronet-keycloak-out/
+          cd ../seronet-keycloak-out
+          ls
+  - put: keycloak-deployment
+    params:
+      manifest: seronet-keycloak-out/manifest.yml
+      path: seronet-keycloak-out
+    on_success:
+      put: notify
+      params:
+        text: Keycloak deployed to ((cf.space)) in ((cf.org)).   
+
+
